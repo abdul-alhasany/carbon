@@ -271,6 +271,8 @@ trait Localization
 
             if ($key === 'from') {
                 foreach (['months', 'weekdays'] as $variable) {
+                    var_dump($variable);
+                    exit;
                     $list = $messages[$variable.'_standalone'] ?? null;
 
                     if ($list) {
@@ -411,10 +413,24 @@ trait Localization
 
             if ($translator instanceof Translator) {
                 $preferredLocale = $translator->getLocale();
+                $fallbackMessages = [];
+                $preferredMessages = $translator->getMessages($preferredLocale);
+
+                foreach (Translator::get($locale)->getMessages()[$locale] ?? [] as $key => $value) {
+                    if (
+                        preg_match('/^(?:a_)?(.+)_(?:standalone|ago|from_now|before|after|short|min)$/', $key, $match)
+                        && isset($preferredMessages[$match[1]])
+                    ) {
+                        continue;
+                    }
+
+                    $fallbackMessages[$key] = $value;
+                }
+
                 $translator->setMessages($preferredLocale, array_replace_recursive(
                     $translator->getMessages()[$locale] ?? [],
-                    Translator::get($locale)->getMessages()[$locale] ?? [],
-                    $translator->getMessages($preferredLocale),
+                    $fallbackMessages,
+                    $preferredMessages,
                 ));
             }
         }
